@@ -29,8 +29,7 @@ class ErrorPresenter {
             let statusString: String = {
                 switch (otherTunnelStatus) {
                 case .active: fallthrough
-                case .reasserting: fallthrough
-                case .restarting:
+                case .reasserting:
                     return "active"
                 case .activating: fallthrough
                 case .deactivating:

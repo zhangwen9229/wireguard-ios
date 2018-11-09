@@ -17,6 +17,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
     // MARK: Properties
 
     private var wgHandle: Int32?
+    private var protocolConfigurationObserver: AnyObject?
 
     // MARK: NEPacketTunnelProvider
 
@@ -30,6 +31,30 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
                 startTunnelCompletionHandler(PacketTunnelProviderError.savedProtocolConfigurationIsInvalid)
                 return
         }
+
+        // Observe the tunnel provider and, on a change, restart the tunnel with the new tunnel configuration
+
+        protocolConfigurationObserver = self.observe(\.protocolConfiguration) { [weak self] (packetTunnelProvider, _) in
+            NSLog("protocolConfiguration changed")
+            guard let s = self else { return }
+            guard let tunnelProviderProtocol = s.protocolConfiguration as? NETunnelProviderProtocol,
+                let tunnelConfiguration = tunnelProviderProtocol.tunnelConfiguration() else {
+                    ErrorNotifier.notify(PacketTunnelProviderError.savedProtocolConfigurationIsInvalid, from: s)
+                    return
+            }
+            if let handle = s.wgHandle {
+                NSLog("Restarting after protocolConfiguration changed")
+                s.reasserting = true
+                wgTurnOff(handle)
+                s.startTunnel(with: tunnelConfiguration, completionHandler: { [weak s] (error) in
+                    if (error == nil) {
+                        s?.reasserting = false
+                    }
+                })
+            }
+        }
+
+        // Start the tunnel
 
         startTunnel(with: tunnelConfiguration, completionHandler: startTunnelCompletionHandler)
     }

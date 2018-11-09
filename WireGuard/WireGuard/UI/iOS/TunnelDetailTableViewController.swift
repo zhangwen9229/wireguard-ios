@@ -258,9 +258,7 @@ class TunnelDetailTableViewStatusCell: UITableViewCell {
         case .deactivating:
             text = "Deactivating"
         case .reasserting:
-            text = "Reactivating"
-        case .restarting:
-            text = "Restarting"
+            text = "Re-activating"
         }
         textLabel?.text = text
         DispatchQueue.main.async { [weak statusSwitch] in

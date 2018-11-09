@@ -148,11 +148,6 @@ class TunnelsManager {
                 }
                 s.delegate?.tunnelModified(at: s.tunnels.firstIndex(of: tunnel)!)
 
-                if (tunnel.status == .active || tunnel.status == .activating || tunnel.status == .reasserting) {
-                    // Turn off the tunnel, and then turn it back on, so the changes are made effective
-                    tunnel.beginRestart()
-                }
-
                 completionHandler(nil)
             }
         }
@@ -247,7 +242,7 @@ class TunnelContainer: NSObject {
     }
 
     fileprivate func startActivation(completionHandler: @escaping (Error?) -> Void) {
-        assert(status == .inactive || status == .restarting)
+        assert(status == .inactive)
 
         guard let tunnelConfiguration = tunnelConfiguration() else { fatalError() }
 
@@ -332,14 +327,6 @@ class TunnelContainer: NSObject {
         session.stopTunnel()
     }
 
-    fileprivate func beginRestart() {
-        assert(status == .active || status == .activating || status == .reasserting)
-        assert(statusObservationToken != nil)
-        status = .restarting
-        let session = (tunnelProvider.connection as! NETunnelProviderSession)
-        session.stopTunnel()
-    }
-
     private func startObservingTunnelStatus() {
         print("startObservingTunnelStatus: statusObservationToken = \(statusObservationToken)")
         if (statusObservationToken != nil) { return }
@@ -350,13 +337,6 @@ class TunnelContainer: NSObject {
             queue: nil) { [weak self] (_) in
                 print("Connection status changed to: \(connection.status.rawValue)")
                 guard let s = self else { return }
-                if ((s.status == .restarting) && (connection.status == .disconnected || connection.status == .disconnecting)) {
-                    // Don't change s.status when disconnecting for a restart
-                    if (connection.status == .disconnected) {
-                        self?.startActivation(completionHandler: { _ in })
-                    }
-                    return
-                }
                 s.status = TunnelStatus(from: connection.status)
                 if (s.status == .inactive) {
                     s.statusObservationToken = nil
@@ -370,9 +350,7 @@ class TunnelContainer: NSObject {
     case activating
     case active
     case deactivating
-    case reasserting // Not a possible state at present
-
-    case restarting // Restarting tunnel (done after saving modifications to an active tunnel)
+    case reasserting
 
     init(from vpnStatus: NEVPNStatus) {
         switch (vpnStatus) {
