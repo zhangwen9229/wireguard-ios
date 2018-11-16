@@ -6,11 +6,15 @@ import Cocoa
 @NSApplicationMain
 class AppDelegate: NSObject, NSApplicationDelegate {
 
-    @IBOutlet weak var window: NSWindow!
-
-
     func applicationDidFinishLaunching(_ aNotification: Notification) {
-        // Insert code here to initialize your application
+        let mainVC = MainViewController()
+        let window = NSWindow(contentViewController: mainVC)
+
+        // Auto-save window position and size
+        window.windowController?.shouldCascadeWindows = false
+        window.setFrameAutosaveName(NSWindow.FrameAutosaveName("MainWindow"))
+
+        window.makeKeyAndOrderFront(self)
     }
 
     func applicationWillTerminate(_ aNotification: Notification) {
